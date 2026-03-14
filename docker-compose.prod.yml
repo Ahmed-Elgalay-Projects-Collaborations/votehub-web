@@ -1,0 +1,9 @@
+services:
+  web:
+    build:
+      context: .
+      target: build
+    container_name: votehub-web-prod-build
+    command: sh -c "rm -rf /output/* && cp -r /app/dist/. /output"
+    volumes:
+      - ./dist:/output
