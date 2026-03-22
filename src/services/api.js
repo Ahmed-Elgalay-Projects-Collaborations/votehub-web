@@ -3,7 +3,7 @@
 // Currently returns MOCKED data. When backend is ready, replace internals only.
 // All requests use credentials: 'include' for HttpOnly cookie support
 
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api'
+const BASE_URL = import.meta.env.VITE_API_URL || '/api/v1'
 
 // ─── Mock Data ───────────────────────────────────────────────────────────────
 

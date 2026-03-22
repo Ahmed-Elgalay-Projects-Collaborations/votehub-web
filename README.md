@@ -32,6 +32,8 @@ docker compose up --build
 
 App URL: `http://localhost:5173`
 
+API calls should use a relative base like `/api/v1` (Vite proxies `/api/*` to the backend). Configure the proxy target with `VITE_PROXY_TARGET` (defaults to `http://localhost:3100`).
+
 ### Production
 
 ```bash
