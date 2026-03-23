@@ -8,7 +8,7 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false)
   
   const [profile, setProfile] = useState({
-    name: user?.name || '',
+    name: user?.fullName || '',
     email: user?.email || '',
     company: ''
   })
@@ -88,7 +88,7 @@ export default function SettingsPage() {
               
               <div className="settings-avatar-section">
                 <div className="settings-avatar-large">
-                  {user?.name?.charAt(0) || 'A'}
+                  {user?.fullName?.charAt(0) || 'A'}
                 </div>
                 <div>
                   <button className="btn btn-secondary">Upload New Avatar</button>

@@ -1,14 +1,14 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
-import { getPolls, deletePoll } from '../services/api'
+import { getPolls, deletePoll, changeElectionStatus } from '../services/api'
 import PollCard from '../components/PollCard'
 
 export default function DashboardPage() {
   const { user } = useAuth()
   const [polls, setPolls] = useState([])
   const [loading, setLoading] = useState(true)
-  const [filter, setFilter] = useState('all') // all, active, closed, draft
+  const [filter, setFilter] = useState('all') // all, open, closed, draft
 
   useEffect(() => {
     getPolls()
@@ -19,11 +19,24 @@ export default function DashboardPage() {
   const handleDeletePoll = async (pollId) => {
     if (window.confirm('Are you sure you want to delete this poll?')) {
       await deletePoll(pollId)
-      setPolls(polls.filter(p => p.id !== pollId))
+      setPolls(polls.filter(p => !((p._id || p.id) === pollId)))
     }
   }
 
-  const filteredPolls = polls.filter(poll => filter === 'all' || poll.status === filter)
+  const handleChangeStatus = async (pollId, status) => {
+    try {
+      await changeElectionStatus(pollId, status)
+      setPolls(polls.map(p => (p._id || p.id) === pollId ? { ...p, status } : p))
+    } catch (err) {
+      alert(err.message || 'Failed to change poll status')
+    }
+  }
+
+  const filteredPolls = polls.filter(poll => {
+    if (filter === 'all') return true
+    if (filter === 'open') return poll.status === 'open' || poll.status === 'published'
+    return poll.status === filter
+  })
 
   return (
     <div className="dashboard-page">
@@ -32,7 +45,7 @@ export default function DashboardPage() {
         <header className="dashboard-header animate-fade-in-up">
           <div>
             <h1>Dashboard</h1>
-            <p>Welcome back, {user?.name.split(' ')[0]}!</p>
+            <p>Welcome back, {user?.fullName?.split(' ')[0] || 'there'}!</p>
           </div>
           <Link to="/polls/create" className="btn btn-primary">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -45,7 +58,7 @@ export default function DashboardPage() {
 
         <div className="dashboard-filters animate-fade-in-up delay-100">
           <button className={`filter-tab ${filter === 'all' ? 'active' : ''}`} onClick={() => setFilter('all')}>All Polls</button>
-          <button className={`filter-tab ${filter === 'active' ? 'active' : ''}`} onClick={() => setFilter('active')}>Active</button>
+          <button className={`filter-tab ${filter === 'open' ? 'active' : ''}`} onClick={() => setFilter('open')}>Active</button>
           <button className={`filter-tab ${filter === 'closed' ? 'active' : ''}`} onClick={() => setFilter('closed')}>Closed</button>
           <button className={`filter-tab ${filter === 'draft' ? 'active' : ''}`} onClick={() => setFilter('draft')}>Drafts</button>
         </div>
@@ -57,8 +70,8 @@ export default function DashboardPage() {
         ) : filteredPolls.length > 0 ? (
           <div className="poll-grid">
             {filteredPolls.map((poll, i) => (
-              <div key={poll.id} style={{ animationDelay: `${(i % 5) * 100}ms` }}>
-                <PollCard poll={poll} onDelete={handleDeletePoll} />
+              <div key={poll._id} style={{ animationDelay: `${(i % 5) * 100}ms` }}>
+                <PollCard poll={poll} onDelete={handleDeletePoll} onChangeStatus={handleChangeStatus} />
               </div>
             ))}
           </div>

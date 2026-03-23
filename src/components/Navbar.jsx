@@ -56,13 +56,13 @@ export default function Navbar() {
                 aria-haspopup="true"
                 aria-expanded={dropdownOpen}
               >
-                {user.name.charAt(0)}
+                {(user.fullName || user.email || 'U').charAt(0)}
               </button>
               
               {dropdownOpen && (
                 <div className="dropdown-menu animate-fade-in-up" style={{ animationDelay: '0s', animationDuration: '0.2s' }}>
                   <div className="dropdown-header">
-                    <strong>{user.name}</strong>
+                    <strong>{user.fullName}</strong>
                     <span className="dropdown-email">{user.email}</span>
                   </div>
                   <div className="dropdown-divider"></div>

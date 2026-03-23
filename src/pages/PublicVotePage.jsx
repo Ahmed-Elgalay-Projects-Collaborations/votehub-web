@@ -7,9 +7,10 @@ export default function PublicVotePage() {
   const { id } = useParams()
   const { poll, loading, error } = usePoll(id)
   
-  const [selectedOption, setSelectedOption] = useState(null)
+  const [selectedOptions, setSelectedOptions] = useState([])
   const [submitting, setSubmitting] = useState(false)
   const [voted, setVoted] = useState(false)
+  const [voteReceipt, setVoteReceipt] = useState(null)
 
   if (loading) return <div className="spinner" style={{marginTop: '20vh'}}></div>
   
@@ -21,15 +22,32 @@ export default function PublicVotePage() {
     </div>
   )
 
+  const maxSelections = poll.maxSelections || 1
+
+  const toggleOption = (optionId) => {
+    if (maxSelections === 1) {
+      setSelectedOptions([optionId])
+    } else {
+      setSelectedOptions(prev => {
+        if (prev.includes(optionId)) {
+          return prev.filter(id => id !== optionId)
+        }
+        if (prev.length >= maxSelections) return prev
+        return [...prev, optionId]
+      })
+    }
+  }
+
   const handleVote = async () => {
-    if (selectedOption === null && poll.type !== 'open-text') return;
+    if (selectedOptions.length === 0) return
 
     setSubmitting(true)
     try {
-      await vote(id, selectedOption)
+      const result = await vote(id, selectedOptions)
+      setVoteReceipt(result.receipt)
       setVoted(true)
     } catch (err) {
-      alert("Failed to submit vote. Try again.")
+      alert(err.message || "Failed to submit vote. Try again.")
     } finally {
       setSubmitting(false)
     }
@@ -44,11 +62,9 @@ export default function PublicVotePage() {
             <h2>Vote Recorded!</h2>
             <p style={{ color: 'var(--text)', margin: '1rem 0 2rem' }}>Thank you for participating.</p>
             
-            {(poll.settings?.showResultsToVoters !== false) && (
-               <Link to={`/polls/${id}/results`} className="btn btn-primary w-full" style={{ marginBottom: '1rem' }}>
-                 View Live Results
-               </Link>
-            )}
+            <Link to={`/polls/${id}/results`} className="btn btn-primary w-full" style={{ marginBottom: '1rem' }}>
+              View Live Results
+            </Link>
             <Link to="/register" className="btn btn-secondary w-full">Create your own poll</Link>
             
             <div className="vote-footer-branding">
@@ -63,60 +79,42 @@ export default function PublicVotePage() {
   return (
     <div className="vote-page">
       <div className="vote-container animate-fade-in-up">
-        <span className="vote-badge">{poll.type.replace('-', ' ')}</span>
+        <span className="vote-badge">{poll.type}</span>
         <h1 className="vote-question">{poll.title}</h1>
+        {poll.description && (
+          <p style={{ color: 'var(--text)', marginBottom: '1.5rem', lineHeight: 1.6 }}>{poll.description}</p>
+        )}
+        {maxSelections > 1 && (
+          <p style={{ color: 'var(--text)', fontSize: '0.875rem', marginBottom: '1rem' }}>
+            Select up to {maxSelections} options
+          </p>
+        )}
         
         <div className="vote-options">
-          {poll.type === 'multiple-choice' && poll.options.map((opt, i) => (
-             <button 
-               key={i} 
-               className={`vote-option-btn ${selectedOption === i ? 'selected' : ''}`}
-               onClick={() => setSelectedOption(i)}
-             >
-               <div className="radio-circle"></div>
-               {opt}
-             </button>
-          ))}
-          
-          {poll.type === 'yes-no' && poll.options.map((opt, i) => (
-             <button 
-               key={i} 
-               className={`vote-option-btn text-center ${selectedOption === i ? 'selected' : ''}`}
-               onClick={() => setSelectedOption(i)}
-             >
-               {opt}
-             </button>
-          ))}
-
-          {poll.type === 'rating' && (
-             <div className="vote-rating-container">
-               {poll.options.map((opt, i) => (
-                 <button 
-                   key={i} 
-                   className={`vote-rating-circle ${selectedOption === i ? 'selected' : ''}`}
-                   onClick={() => setSelectedOption(i)}
-                 >
-                   {opt}
-                 </button>
-               ))}
-             </div>
-          )}
-
-          {poll.type === 'open-text' && (
-             <textarea 
-                className="form-input" 
-                rows="4" 
-                placeholder="Type your answer here..."
-                onChange={(e) => setSelectedOption(e.target.value)}
-             ></textarea>
-          )}
+          {poll.options && poll.options.map((opt) => {
+            const optionId = opt._id || opt.id
+            const isSelected = selectedOptions.includes(optionId)
+            return (
+              <button 
+                key={optionId} 
+                className={`vote-option-btn ${isSelected ? 'selected' : ''}`}
+                onClick={() => toggleOption(optionId)}
+              >
+                <div className="radio-circle"></div>
+                {opt.label}
+                {opt.description && (
+                  <span style={{ display: 'block', fontSize: '0.8rem', opacity: 0.7, marginTop: '0.25rem' }}>{opt.description}</span>
+                )}
+              </button>
+            )
+          })}
         </div>
 
         <button 
           className="btn btn-primary bg-gradient w-full" 
           style={{ marginTop: '2.5rem', padding: '1.25rem', fontSize: '1.1rem' }}
           onClick={handleVote}
-          disabled={submitting || (selectedOption === null && poll.type !== 'open-text')}
+          disabled={submitting || selectedOptions.length === 0}
         >
           {submitting ? 'Submitting...' : 'Submit Vote'}
         </button>

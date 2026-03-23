@@ -14,7 +14,7 @@ export function usePoll(id) {
         if (!data) throw new Error('Poll not found')
         setPoll(data)
       })
-      .catch(err => setError(err.message))
+      .catch(err => setError(err.message || 'Failed to load poll'))
       .finally(() => setLoading(false))
   }, [id])
 

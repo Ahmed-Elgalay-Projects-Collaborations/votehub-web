@@ -12,37 +12,46 @@ export default function PollBuilderPage() {
   const [submitting, setSubmitting] = useState(false)
 
   // Poll Data State
-  const [pollType, setPollType] = useState('multiple-choice')
+  const [pollType, setPollType] = useState('poll')
   const [question, setQuestion] = useState('')
-  const [options, setOptions] = useState(['', ''])
+  const [description, setDescription] = useState('')
+  const [options, setOptions] = useState([{ label: '' }, { label: '' }])
+  const [startsAt, setStartsAt] = useState('')
+  const [endsAt, setEndsAt] = useState('')
+  const [status, setStatus] = useState('draft')
+  const [maxSelections, setMaxSelections] = useState(1)
   const [settings, setSettings] = useState({
-    visibility: 'public', // public, unlisted
-    requireLoginToVote: false,
-    allowMultipleVotes: false,
-    showResultsToVoters: true,
+    resultsVisibility: 'after_close', // always, after_close
   })
 
   useEffect(() => {
     if (isEditing) {
-      getPoll(id).then(poll => {
-        if (poll) {
-          setPollType(poll.type)
-          setQuestion(poll.title)
-          setOptions(poll.options)
-          // setSettings(poll.settings) if they existed
+      getPoll(id).then(election => {
+        if (election) {
+          setPollType(election.type || 'poll')
+          setQuestion(election.title)
+          setDescription(election.description || '')
+          setOptions(election.options?.map(o => typeof o === 'string' ? { label: o } : o) || [{ label: '' }, { label: '' }])
+          setStartsAt(election.startsAt ? new Date(election.startsAt).toISOString().slice(0, 16) : '')
+          setEndsAt(election.endsAt ? new Date(election.endsAt).toISOString().slice(0, 16) : '')
+          setStatus(election.status || 'draft')
+          setMaxSelections(election.maxSelections || 1)
+          setSettings({
+            resultsVisibility: election.resultsVisibility || 'after_close',
+          })
         }
         setLoading(false)
-      })
+      }).catch(() => setLoading(false))
     }
   }, [id, isEditing])
 
   const handleAddOption = () => {
-    setOptions([...options, ''])
+    setOptions([...options, { label: '' }])
   }
 
   const handleUpdateOption = (index, value) => {
     const newOptions = [...options]
-    newOptions[index] = value
+    newOptions[index] = { ...newOptions[index], label: value }
     setOptions(newOptions)
   }
 
@@ -58,19 +67,31 @@ export default function PollBuilderPage() {
       alert("Please enter a question.")
       return
     }
-    const validOptions = options.filter(o => o.trim() !== '')
-    if (pollType === 'multiple-choice' && validOptions.length < 2) {
+    const validOptions = options.filter(o => o.label.trim() !== '')
+    if (validOptions.length < 2) {
       alert("Please provide at least two valid options.")
+      return
+    }
+    if (!startsAt || !endsAt) {
+      alert("Please set start and end dates.")
+      return
+    }
+    if (new Date(endsAt) <= new Date(startsAt)) {
+      alert("End date must be after start date.")
       return
     }
 
     setSubmitting(true)
     const pollData = {
       title: question,
+      description,
       type: pollType,
-      options: pollType === 'multiple-choice' ? validOptions : (pollType === 'yes-no' ? ['Yes', 'No'] : ['1','2','3','4','5']),
-      settings,
-      status: 'active'
+      options: validOptions.map(o => ({ label: o.label.trim(), description: o.description || '' })),
+      startsAt: new Date(startsAt).toISOString(),
+      endsAt: new Date(endsAt).toISOString(),
+      maxSelections,
+      resultsVisibility: settings.resultsVisibility,
+      status,
     }
 
     try {
@@ -81,7 +102,7 @@ export default function PollBuilderPage() {
       }
       navigate('/dashboard')
     } catch (err) {
-      alert("Error saving poll")
+      alert(err.message || "Error saving poll")
       setSubmitting(false)
     }
   }
@@ -116,10 +137,9 @@ export default function PollBuilderPage() {
             {step === 1 && (
               <div className="type-selection grid-2">
                 {[
-                  { id: 'multiple-choice', icon: 'M12 4v16m8-8H4', title: 'Multiple Choice', desc: 'Let voters pick from options' },
-                  { id: 'yes-no', icon: 'M5 13l4 4L19 7', title: 'Yes / No', desc: 'Simple binary decision' },
-                  { id: 'rating', icon: 'M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z', title: 'Rating 1-5', desc: 'Get a score out of 5' },
-                  { id: 'open-text', icon: 'M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z', title: 'Open Text', desc: 'Free-form text answers' }
+                  { id: 'poll', icon: 'M12 4v16m8-8H4', title: 'Poll', desc: 'Standard poll — single or multiple choice' },
+                  { id: 'election', icon: 'M5 13l4 4L19 7', title: 'Election', desc: 'Formal election with candidates' },
+                  { id: 'campaign', icon: 'M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z', title: 'Campaign', desc: 'Run a campaign with multiple rounds' },
                 ].map(t => (
                   <div 
                     key={t.id} 
@@ -139,91 +159,114 @@ export default function PollBuilderPage() {
             {step === 2 && (
               <div className="content-setup">
                 <div className="form-group">
-                  <label>Poll Question</label>
+                  <label>Poll Title</label>
                   <input 
                     type="text" 
                     className="form-input text-xl font-bold" 
-                    placeholder="e.g., What should we order for lunch?"
+                    placeholder="e.g., Best JS Framework 2025?"
                     value={question}
                     onChange={(e) => setQuestion(e.target.value)}
                     autoFocus
                   />
                 </div>
 
-                {pollType === 'multiple-choice' && (
-                  <div className="options-list mt-2">
-                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, fontSize: '0.875rem' }}>Options</label>
-                    {options.map((opt, i) => (
-                      <div key={i} className="option-row">
-                        <div className="option-drag-handle">⋮⋮</div>
-                        <input 
-                          type="text" 
-                          className="form-input" 
-                          placeholder={`Option ${i + 1}`}
-                          value={opt}
-                          onChange={(e) => handleUpdateOption(i, e.target.value)}
-                        />
-                        <button 
-                          className="btn-icon text-danger" 
-                          onClick={() => handleRemoveOption(i)}
-                          disabled={options.length <= 2}
-                        >
-                          ×
-                        </button>
-                      </div>
-                    ))}
-                    <button className="btn btn-secondary mt-1" onClick={handleAddOption} style={{ width: '100%' }}>
-                      + Add Option
-                    </button>
-                  </div>
-                )}
-                
-                {pollType === 'yes-no' && (
-                  <div className="options-preview-static">
-                    <div className="option-static">Yes</div>
-                    <div className="option-static">No</div>
-                  </div>
-                )}
-                
-                {pollType === 'rating' && (
-                  <div className="options-preview-static flex-row">
-                    {[1,2,3,4,5].map(n => <div key={n} className="option-static-circle">{n}</div>)}
-                  </div>
-                )}
+                <div className="form-group">
+                  <label>Description (Optional)</label>
+                  <textarea 
+                    className="form-input" 
+                    placeholder="Provide additional context for voters..."
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    rows="3"
+                    style={{ resize: 'vertical' }}
+                  />
+                </div>
+
+                <div className="options-list mt-2">
+                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, fontSize: '0.875rem' }}>Options</label>
+                  {options.map((opt, i) => (
+                    <div key={i} className="option-row">
+                      <div className="option-drag-handle">⋮⋮</div>
+                      <input 
+                        type="text" 
+                        className="form-input" 
+                        placeholder={`Option ${i + 1}`}
+                        value={opt.label}
+                        onChange={(e) => handleUpdateOption(i, e.target.value)}
+                      />
+                      <button 
+                        className="btn-icon text-danger" 
+                        onClick={() => handleRemoveOption(i)}
+                        disabled={options.length <= 2}
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                  <button className="btn btn-secondary mt-1" onClick={handleAddOption} style={{ width: '100%' }}>
+                    + Add Option
+                  </button>
+                </div>
               </div>
             )}
 
             {step === 3 && (
               <div className="settings-setup">
-                <div className="setting-row">
-                  <div>
-                    <h4>Require Login to Vote</h4>
-                    <p>Voters must have an account to participate.</p>
-                  </div>
-                  <label className="toggle-switch">
-                    <input type="checkbox" checked={settings.requireLoginToVote} onChange={e => setSettings({...settings, requireLoginToVote: e.target.checked})} />
-                    <span className="slider"></span>
-                  </label>
+                <div className="form-group">
+                  <label>Poll Status</label>
+                  <select 
+                    className="form-input" 
+                    value={status} 
+                    onChange={(e) => setStatus(e.target.value)}
+                  >
+                    <option value="draft">Draft (Save for later)</option>
+                    <option value="published">Published (Visible, but not started)</option>
+                    <option value="open">Open (Active and ready for votes)</option>
+                  </select>
                 </div>
 
-                <div className="setting-row">
-                  <div>
-                    <h4>Allow Multiple Votes</h4>
-                    <p>Users can vote more than once.</p>
-                  </div>
-                  <label className="toggle-switch">
-                    <input type="checkbox" checked={settings.allowMultipleVotes} onChange={e => setSettings({...settings, allowMultipleVotes: e.target.checked})} />
-                    <span className="slider"></span>
-                  </label>
+                <div className="form-group">
+                  <label>Start Date & Time</label>
+                  <input 
+                    type="datetime-local" 
+                    className="form-input" 
+                    value={startsAt}
+                    onChange={(e) => setStartsAt(e.target.value)}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>End Date & Time</label>
+                  <input 
+                    type="datetime-local" 
+                    className="form-input" 
+                    value={endsAt}
+                    onChange={(e) => setEndsAt(e.target.value)}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Max Selections per Voter</label>
+                  <input 
+                    type="number" 
+                    className="form-input" 
+                    value={maxSelections}
+                    onChange={(e) => setMaxSelections(Math.max(1, parseInt(e.target.value) || 1))}
+                    min="1"
+                  />
                 </div>
 
                 <div className="setting-row">
                   <div>
                     <h4>Show Results Immediately</h4>
-                    <p>Voters see the results directly after voting.</p>
+                    <p>Voters see the results while voting is still open.</p>
                   </div>
                   <label className="toggle-switch">
-                    <input type="checkbox" checked={settings.showResultsToVoters} onChange={e => setSettings({...settings, showResultsToVoters: e.target.checked})} />
+                    <input 
+                      type="checkbox" 
+                      checked={settings.resultsVisibility === 'always'} 
+                      onChange={e => setSettings({...settings, resultsVisibility: e.target.checked ? 'always' : 'after_close'})} 
+                    />
                     <span className="slider"></span>
                   </label>
                 </div>
@@ -255,29 +298,14 @@ export default function PollBuilderPage() {
                 {question || 'Your question will appear here...'}
               </h3>
               
-              {pollType === 'multiple-choice' && (
-                <div className="preview-options">
-                  {options.filter(o => o.trim()).length > 0 ? 
-                    options.filter(o => o.trim()).map((o, i) => (
-                      <div key={i} className="preview-option-btn">{o}</div>
-                    )) : 
-                    <div className="preview-option-btn opacity-50">Option 1</div>
-                  }
-                </div>
-              )}
-
-              {pollType === 'yes-no' && (
-                <div className="preview-options flex-row">
-                  <div className="preview-option-btn text-center">Yes</div>
-                  <div className="preview-option-btn text-center">No</div>
-                </div>
-              )}
-
-              {pollType === 'rating' && (
-                <div className="preview-options flex-row gap-sm justify-center">
-                  {[1,2,3,4,5].map(n => <div key={n} className="preview-rating-btn">{n}</div>)}
-                </div>
-              )}
+              <div className="preview-options">
+                {options.filter(o => o.label.trim()).length > 0 ? 
+                  options.filter(o => o.label.trim()).map((o, i) => (
+                    <div key={i} className="preview-option-btn">{o.label}</div>
+                  )) : 
+                  <div className="preview-option-btn opacity-50">Option 1</div>
+                }
+              </div>
               
               <button className="btn btn-primary w-full mt-2" disabled style={{ opacity: 0.5 }}>Submit Vote</button>
             </div>
