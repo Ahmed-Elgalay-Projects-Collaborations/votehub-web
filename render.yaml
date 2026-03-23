@@ -1,0 +1,7 @@
+services:
+  - name: web
+    type: web
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /nginx-health
