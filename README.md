@@ -1,50 +1,67 @@
-# VoteHub-Web
+# VoteHub Web
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React + Vite frontend for VoteHub.
 
-Currently, two official plugins are available:
+## Environment
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+Copy `.env.example` to `.env` (local only):
 
-## React Compiler
+```bash
+cp .env.example .env
+```
 
-The React Compiler is enabled on this template. See [this documentation](https://react.dev/learn/react-compiler) for more information.
+Main variable:
+- `VITE_API_URL`
+  - same-origin mode: `/api/v1`
+  - split-domain mode: `https://api.votehub.example.com/api/v1`
 
-Note: This will impact Vite dev & build performances.
+## Local Development
 
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+```bash
+npm install
+npm run dev
+```
 
 ## Docker
 
-This project includes two Docker Compose setups:
-
-1. Development (default): `docker-compose.yml`
-2. Production: `docker-compose.prod.yml`
-
-### Development (default)
+Development:
 
 ```bash
 docker compose up --build
 ```
 
-App URL: `http://localhost:5173`
-
-API calls should use a relative base like `/api/v1` (Vite proxies `/api/*` to the backend). Configure the proxy target with `VITE_PROXY_TARGET` (defaults to `http://localhost:3100`).
-
-### Production
+Production container (nginx + built static assets):
 
 ```bash
-docker compose -f docker-compose.prod.yml up --build
+docker compose -f docker-compose.prod.yml up --build -d
 ```
 
-This runs a build-only container and writes the static output to `dist/` (Netlify-style workflow, no app server).
-
-### Stop containers
+Optional build-time API override:
 
 ```bash
-docker compose down
-docker compose -f docker-compose.prod.yml down
+VITE_API_URL=https://api.votehub.example.com/api/v1 docker compose -f docker-compose.prod.yml up --build -d
 ```
+
+## Deployment Notes
+
+- Frontend nginx includes `/nginx-health` for readiness checks.
+- For same-origin deployment, frontend nginx proxies `/api/*` to `http://api:3100`.
+- For split-domain deployment, set `VITE_API_URL` to the backend public URL and ensure backend CORS/cookie config allows the frontend origin.
+
+## Security Notes
+
+- Do not commit runtime `.env` files.
+- TLS must be enforced in production.
+- Keep backend cookie config aligned with deployment:
+  - `COOKIE_SECURE=true`
+  - `COOKIE_SAMESITE=none` for cross-site cookie flows
+
+## Full Production Runbook
+
+DigitalOcean + MongoDB Atlas end-to-end deployment is documented in backend repo:
+
+- `votehub-api/DEPLOYMENT_DIGITALOCEAN_ATLAS.md`
+
+Kubernetes (DOKS) frontend manifests are in:
+
+- `votehub-web/k8s/digitalocean`

@@ -2,8 +2,10 @@ services:
   web:
     build:
       context: .
-      target: build
-    container_name: votehub-web-prod-build
-    command: sh -c "rm -rf /output/* && cp -r /app/dist/. /output"
-    volumes:
-      - ./dist:/output
+      target: production
+      args:
+        VITE_API_URL: ${VITE_API_URL:-/api/v1}
+    container_name: votehub-web-prod
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
