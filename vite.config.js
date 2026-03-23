@@ -8,11 +8,11 @@ export default defineConfig({
   ],
   server: {
     proxy: {
-      '/api': {
-        target: process.env.VITE_API_PROXY_TARGET || 'http://api:3100',
-        changeOrigin: true,
-        secure: false,
-      },
-    },
-  },
+      "/api": {
+        target: process.env.VITE_PROXY_TARGET || "http://localhost:3100",
+        changeOrigin: true
+      }
+    }
+  }
 })
+

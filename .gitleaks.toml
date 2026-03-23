@@ -1,0 +1,8 @@
+title = "VoteHub Web - gitleaks config"
+
+[allowlist]
+description = "Allow common frontend env example files"
+paths = [
+  '''\.env$'''
+]
+
