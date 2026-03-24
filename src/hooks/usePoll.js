@@ -1,22 +1,47 @@
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { getPoll } from '../services/api'
 
 export function usePoll(id) {
-  const [poll, setPoll] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
+  const [state, setState] = useState({
+    poll: null,
+    error: null,
+    resolvedId: null,
+  })
 
   useEffect(() => {
-    if (!id) return;
-    setLoading(true)
+    if (!id) return
+
+    let cancelled = false
+
     getPoll(id)
-      .then(data => {
+      .then((data) => {
         if (!data) throw new Error('Poll not found')
-        setPoll(data)
+        if (!cancelled) {
+          setState({
+            poll: data,
+            error: null,
+            resolvedId: id,
+          })
+        }
       })
-      .catch(err => setError(err.message || 'Failed to load poll'))
-      .finally(() => setLoading(false))
+      .catch((err) => {
+        if (!cancelled) {
+          setState({
+            poll: null,
+            error: err.message || 'Failed to load poll',
+            resolvedId: id,
+          })
+        }
+      })
+
+    return () => {
+      cancelled = true
+    }
   }, [id])
 
-  return { poll, loading, error }
+  return {
+    poll: state.poll,
+    error: state.error,
+    loading: Boolean(id) && state.resolvedId !== id,
+  }
 }

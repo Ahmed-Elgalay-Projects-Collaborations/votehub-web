@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import Modal from '../ui/Modal'
 
 const INITIAL_STATE = {
@@ -19,11 +19,10 @@ export default function AdminStepUpModal({
 }) {
   const [form, setForm] = useState(INITIAL_STATE)
 
-  useEffect(() => {
-    if (!isOpen) {
-      setForm(INITIAL_STATE)
-    }
-  }, [isOpen])
+  const handleClose = () => {
+    setForm(INITIAL_STATE)
+    onClose?.()
+  }
 
   const handleSubmit = async (event) => {
     event.preventDefault()
@@ -37,7 +36,7 @@ export default function AdminStepUpModal({
   }
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Admin Step-Up Verification">
+    <Modal isOpen={isOpen} onClose={handleClose} title="Admin Step-Up Verification">
       <p className="modal-description">{purpose}</p>
       {error && <div className="auth-error" style={{ marginBottom: '1rem' }}>{error}</div>}
 
@@ -106,7 +105,7 @@ export default function AdminStepUpModal({
         </div>
 
         <div className="modal-actions">
-          <button type="button" className="btn btn-secondary" onClick={onClose} disabled={submitting}>
+          <button type="button" className="btn btn-secondary" onClick={handleClose} disabled={submitting}>
             Cancel
           </button>
           <button type="submit" className="btn btn-primary" disabled={submitting}>

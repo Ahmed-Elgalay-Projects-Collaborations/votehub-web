@@ -385,14 +385,16 @@ export default function PollBuilderPage() {
         submitting={submitting}
       />
 
-      <AdminStepUpModal
-        isOpen={stepUpOpen}
-        onClose={() => setStepUpOpen(false)}
-        onSubmit={handleStepUpSubmit}
-        submitting={stepUpSubmitting}
-        error={stepUpError}
-        purpose="Admin poll mutations require a one-time step-up token (password + OTP/recovery code)."
-      />
+      {stepUpOpen && (
+        <AdminStepUpModal
+          isOpen={stepUpOpen}
+          onClose={() => setStepUpOpen(false)}
+          onSubmit={handleStepUpSubmit}
+          submitting={stepUpSubmitting}
+          error={stepUpError}
+          purpose="Admin poll mutations require a one-time step-up token (password + OTP/recovery code)."
+        />
+      )}
     </div>
   )
 }

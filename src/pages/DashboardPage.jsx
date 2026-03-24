@@ -205,14 +205,16 @@ export default function DashboardPage() {
         submitting={actionSubmitting}
       />
 
-      <AdminStepUpModal
-        isOpen={stepUpOpen}
-        onClose={() => setStepUpOpen(false)}
-        onSubmit={handleStepUpSubmit}
-        submitting={stepUpSubmitting}
-        error={stepUpError}
-        purpose="Admin-sensitive poll actions require password + OTP step-up verification."
-      />
+      {stepUpOpen && (
+        <AdminStepUpModal
+          isOpen={stepUpOpen}
+          onClose={() => setStepUpOpen(false)}
+          onSubmit={handleStepUpSubmit}
+          submitting={stepUpSubmitting}
+          error={stepUpError}
+          purpose="Admin-sensitive poll actions require password + OTP step-up verification."
+        />
+      )}
     </div>
   )
 }

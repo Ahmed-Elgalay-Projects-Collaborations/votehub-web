@@ -1,19 +1,17 @@
+import React from 'react'
 import { useState, useEffect } from 'react'
 import { useSearchParams, Link } from 'react-router-dom'
 import { verifyEmail } from '../services/api'
 
 export default function VerifyEmailPage() {
   const [searchParams] = useSearchParams()
-  const [status, setStatus] = useState('verifying') // verifying, success, error
+  const token = searchParams.get('token')
+
+  const [status, setStatus] = useState('verifying')
   const [message, setMessage] = useState('')
 
   useEffect(() => {
-    const token = searchParams.get('token')
-    if (!token) {
-      setStatus('error')
-      setMessage('No verification token provided.')
-      return
-    }
+    if (!token) return
 
     verifyEmail(token)
       .then((data) => {
@@ -24,13 +22,15 @@ export default function VerifyEmailPage() {
         setStatus('error')
         setMessage(err.message || 'Verification failed. The link may have expired.')
       })
-  }, [searchParams])
+  }, [token])
+
+  const effectiveStatus = token ? status : 'error'
+  const effectiveMessage = token ? message : 'No verification token provided.'
 
   return (
     <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 'calc(100vh - 73px)', padding: '2rem' }}>
       <div className="animate-fade-in-up" style={{ textAlign: 'center', maxWidth: '480px' }}>
-        
-        {status === 'verifying' && (
+        {effectiveStatus === 'verifying' && (
           <>
             <div className="spinner" style={{ margin: '0 auto 2rem' }}></div>
             <h2 style={{ color: 'var(--text-h)' }}>Verifying your email...</h2>
@@ -38,28 +38,27 @@ export default function VerifyEmailPage() {
           </>
         )}
 
-        {status === 'success' && (
+        {effectiveStatus === 'success' && (
           <>
-            <div style={{ fontSize: '4rem', marginBottom: '1.5rem' }}>✓</div>
+            <div style={{ fontSize: '4rem', marginBottom: '1.5rem' }}>OK</div>
             <h2 style={{ color: 'var(--text-h)', marginBottom: '0.5rem' }}>Email Verified!</h2>
-            <p style={{ color: 'var(--text)', marginBottom: '2rem', lineHeight: 1.6 }}>{message}</p>
+            <p style={{ color: 'var(--text)', marginBottom: '2rem', lineHeight: 1.6 }}>{effectiveMessage}</p>
             <Link to="/login" className="btn btn-primary" style={{ padding: '0.875rem 2rem' }}>
               Sign in to your account
             </Link>
           </>
         )}
 
-        {status === 'error' && (
+        {effectiveStatus === 'error' && (
           <>
-            <div style={{ fontSize: '4rem', marginBottom: '1.5rem' }}>✗</div>
+            <div style={{ fontSize: '4rem', marginBottom: '1.5rem' }}>X</div>
             <h2 style={{ color: 'var(--text-h)', marginBottom: '0.5rem' }}>Verification Failed</h2>
-            <p style={{ color: 'var(--text)', marginBottom: '2rem', lineHeight: 1.6 }}>{message}</p>
+            <p style={{ color: 'var(--text)', marginBottom: '2rem', lineHeight: 1.6 }}>{effectiveMessage}</p>
             <Link to="/login" className="btn btn-secondary" style={{ padding: '0.875rem 2rem' }}>
               Go to Login
             </Link>
           </>
         )}
-
       </div>
     </div>
   )
