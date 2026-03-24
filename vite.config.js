@@ -7,9 +7,11 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, __dirname, '')
+  const envDir = process.env.VOTEHUB_WEB_ENV_DIR || __dirname
+  const env = loadEnv(mode, envDir, '')
 
   return {
+    envDir,
     plugins: [
       react(),
     ],

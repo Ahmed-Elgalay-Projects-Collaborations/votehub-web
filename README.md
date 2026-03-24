@@ -4,10 +4,25 @@ React + Vite frontend for VoteHub.
 
 ## Environment
 
-Copy `.env.example` to `.env` (local only):
+Keep real env files outside the repo workspace.
+Use a secure folder such as:
 
-```bash
-cp .env.example .env
+```powershell
+C:\Users\Ahmed\.votehub-secrets
+```
+
+Create this file:
+
+```powershell
+C:\Users\Ahmed\.votehub-secrets\votehub-web.env
+```
+
+`vite.config.js` supports loading env files from an external directory via `VOTEHUB_WEB_ENV_DIR`.
+Set it before running local dev:
+
+```powershell
+$env:VOTEHUB_WEB_ENV_DIR="$HOME\.votehub-secrets"
+npm run dev
 ```
 
 Main variable:
