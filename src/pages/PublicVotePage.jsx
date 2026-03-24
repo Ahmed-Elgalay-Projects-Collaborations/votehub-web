@@ -27,6 +27,15 @@ export default function PublicVotePage() {
   const [pageError, setPageError] = useState('')
   const [pageNotice, setPageNotice] = useState('')
 
+  const maxSelections = poll?.maxSelections || 1
+
+  const selectedOptionLabels = useMemo(() => {
+    const idSet = new Set(selectedOptions)
+    return (poll?.options || [])
+      .filter((option) => idSet.has(option._id || option.id))
+      .map((option) => option.label)
+  }, [poll?.options, selectedOptions])
+
   if (loading) return <div className="spinner" style={{ marginTop: '20vh' }}></div>
 
   if (error || !poll) {
@@ -38,15 +47,6 @@ export default function PublicVotePage() {
       </div>
     )
   }
-
-  const maxSelections = poll.maxSelections || 1
-
-  const selectedOptionLabels = useMemo(() => {
-    const idSet = new Set(selectedOptions)
-    return (poll.options || [])
-      .filter((option) => idSet.has(option._id || option.id))
-      .map((option) => option.label)
-  }, [poll.options, selectedOptions])
 
   const toggleOption = (optionId) => {
     if (voteState === 'submitting') return
