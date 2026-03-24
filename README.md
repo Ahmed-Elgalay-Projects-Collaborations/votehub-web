@@ -77,6 +77,7 @@ On push to `main`/`master`, it:
 
 Required GitHub repository secret:
 - `DOKS_KUBECONFIG_B64` (base64 kubeconfig for the target DOKS cluster)
+- `DIGITALOCEAN_ACCESS_TOKEN` (required when kubeconfig uses `exec` auth via `doctl`)
 
 Optional GitHub repository variable:
 - `VITE_API_URL` (defaults to `/api/v1`)
