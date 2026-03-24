@@ -9,24 +9,27 @@ export default function Navbar() {
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const dropdownRef = useRef(null)
 
-  // Close dropdown if clicked outside
   useEffect(() => {
     function handleClickOutside(event) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setDropdownOpen(false)
       }
     }
-    document.addEventListener("mousedown", handleClickOutside)
-    return () => document.removeEventListener("mousedown", handleClickOutside)
-  }, [dropdownRef])
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  const canCreatePolls = user && (user.role === 'admin' || user.canCreatePolls)
 
   return (
     <nav className="navbar">
       <div className="navbar-container">
-        <Link to={user ? "/dashboard" : "/"} className="navbar-logo">
+        <Link to={user ? '/dashboard' : '/'} className="navbar-logo">
           <img src="/votehub-logo.png" alt="VoteHub Logo" className="logo-icon" />
           VoteHub
         </Link>
+
         <div className="navbar-links">
           <button onClick={toggleTheme} className="theme-toggle" aria-label="Toggle theme" title="Toggle Theme">
             {theme === 'dark' ? (
@@ -47,25 +50,36 @@ export default function Navbar() {
               </svg>
             )}
           </button>
-          
+
           {user ? (
             <div className="user-menu" ref={dropdownRef}>
-              <button 
-                className="avatar-btn" 
-                onClick={() => setDropdownOpen(!dropdownOpen)}
+              <button
+                className="avatar-btn"
+                onClick={() => setDropdownOpen((open) => !open)}
                 aria-haspopup="true"
                 aria-expanded={dropdownOpen}
               >
                 {(user.fullName || user.email || 'U').charAt(0)}
               </button>
-              
+
               {dropdownOpen && (
-                <div className="dropdown-menu animate-fade-in-up" style={{ animationDelay: '0s', animationDuration: '0.2s' }}>
+                <div className="dropdown-menu animate-fade-in-up dropdown-fast-animate">
                   <div className="dropdown-header">
                     <strong>{user.fullName}</strong>
                     <span className="dropdown-email">{user.email}</span>
+                    <div className="trust-indicators">
+                      <span className={`trust-pill ${user.emailVerified ? 'ok' : 'warn'}`}>
+                        {user.emailVerified ? 'Email verified' : 'Email unverified'}
+                      </span>
+                      <span className={`trust-pill ${user.otpEnabled ? 'ok' : 'warn'}`}>
+                        {user.otpEnabled ? '2FA enabled' : '2FA disabled'}
+                      </span>
+                      {user.role === 'admin' && <span className="trust-pill secure">Secure admin area</span>}
+                    </div>
                   </div>
+
                   <div className="dropdown-divider"></div>
+
                   <Link to="/dashboard" className="dropdown-item" onClick={() => setDropdownOpen(false)}>
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <rect x="3" y="3" width="7" height="7"></rect>
@@ -75,20 +89,25 @@ export default function Navbar() {
                     </svg>
                     My Dashboard
                   </Link>
-                  <Link to="/polls/create" className="dropdown-item" onClick={() => setDropdownOpen(false)}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <line x1="12" y1="5" x2="12" y2="19"></line>
-                      <line x1="5" y1="12" x2="19" y2="12"></line>
-                    </svg>
-                    Create New Poll
-                  </Link>
+
+                  {canCreatePolls && (
+                    <Link to="/polls/create" className="dropdown-item" onClick={() => setDropdownOpen(false)}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                      </svg>
+                      Create New Poll
+                    </Link>
+                  )}
+
                   <Link to="/settings" className="dropdown-item" onClick={() => setDropdownOpen(false)}>
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <circle cx="12" cy="12" r="3"></circle>
                       <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
                     </svg>
-                    Account Settings
+                    Security Settings
                   </Link>
+
                   <button className="dropdown-item text-danger" onClick={logout}>
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
@@ -103,7 +122,7 @@ export default function Navbar() {
           ) : (
             <>
               <Link to="/login" className="nav-link">Login</Link>
-              <Link to="/register" className="btn btn-primary" style={{ padding: '0.5rem 1rem', fontSize: '0.875rem' }}>Get Started</Link>
+              <Link to="/register" className="btn btn-primary btn-compact">Get Started</Link>
             </>
           )}
         </div>

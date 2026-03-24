@@ -3,56 +3,94 @@ import * as api from '../services/api'
 
 const AuthContext = createContext(null)
 
+const SESSION_RESET_CODES = new Set(['TOKEN_INVALID', 'INVALID_TOKEN_CONTEXT', 'AUTH_REQUIRED'])
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
 
-  // Check session on mount
   useEffect(() => {
     api.getMe()
       .then((userData) => {
         setUser(userData)
-        // Fetch CSRF token for authenticated session
         return api.getCsrfToken().catch(() => {})
       })
       .catch(() => setUser(null))
       .finally(() => setLoading(false))
   }, [])
 
-  const login = useCallback(async (email, password) => {
-    const result = await api.login(email, password)
+  useEffect(() => {
+    function handleSessionAnomaly(event) {
+      const detail = event?.detail || {}
+      if (!SESSION_RESET_CODES.has(detail.code)) {
+        return
+      }
 
-    // If OTP is required, return the challenge for the UI to handle
+      setUser(null)
+      if (typeof window !== 'undefined' && detail.message) {
+        window.sessionStorage.setItem('votehub-session-alert', detail.message)
+      }
+    }
+
+    window.addEventListener(api.SESSION_ANOMALY_EVENT, handleSessionAnomaly)
+    return () => window.removeEventListener(api.SESSION_ANOMALY_EVENT, handleSessionAnomaly)
+  }, [])
+
+  const login = useCallback(async (email, password, votehubTrap = '') => {
+    const result = await api.login(email, password, votehubTrap)
+
     if (result.otpRequired) {
       return result
     }
 
-    // Normal login success
-    setUser(result.user)
-    // Fetch CSRF token for the new session
-    await api.getCsrfToken().catch(() => {})
-    return result
-  }, [])
-
-  const verifyOtp = useCallback(async (challengeToken, otpCode, recoveryCode) => {
-    const result = await api.verifyLoginOtp(challengeToken, otpCode, recoveryCode)
     setUser(result.user)
     await api.getCsrfToken().catch(() => {})
     return result
   }, [])
 
-  const register = useCallback(async (fullName, email, password) => {
-    const result = await api.register(fullName, email, password)
-    // Registration does NOT log in — email verification is required
+  const verifyOtp = useCallback(async (challengeToken, otpCode, recoveryCode, votehubTrap = '') => {
+    const result = await api.verifyLoginOtp(challengeToken, otpCode, recoveryCode, votehubTrap)
+    setUser(result.user)
+    await api.getCsrfToken().catch(() => {})
     return result
+  }, [])
+
+  const startOtpSetup = useCallback(async (challengeToken, votehubTrap = '') => {
+    return await api.startOtpSetup(challengeToken, votehubTrap)
+  }, [])
+
+  const completeOtpSetup = useCallback(async (otpCode, challengeToken, votehubTrap = '') => {
+    const result = await api.verifyOtpSetup(otpCode, challengeToken, votehubTrap)
+
+    if (result.user) {
+      setUser(result.user)
+      await api.getCsrfToken().catch(() => {})
+    } else {
+      await api.getMe().then(setUser).catch(() => setUser(null))
+    }
+
+    return result
+  }, [])
+
+  const disableOtp = useCallback(async (currentPassword, otpCode, recoveryCode, votehubTrap = '') => {
+    const result = await api.disableOtp(currentPassword, otpCode, recoveryCode, votehubTrap)
+    const userData = await api.getMe()
+    setUser(userData)
+    return result
+  }, [])
+
+  const register = useCallback(async (fullName, email, password, votehubTrap = '') => {
+    return await api.register(fullName, email, password, votehubTrap)
   }, [])
 
   const logout = useCallback(async () => {
     try {
       await api.logout()
     } catch {
-      // Ignore errors during logout
+      // Ignore logout errors and still clear local auth state
     }
+
+    api.clearApiSessionState()
     setUser(null)
   }, [])
 
@@ -72,6 +110,9 @@ export function AuthProvider({ children }) {
     loading,
     login,
     verifyOtp,
+    startOtpSetup,
+    completeOtpSetup,
+    disableOtp,
     register,
     logout,
     refreshUser,

@@ -1,189 +1,354 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useAuth } from '../hooks/useAuth'
 
 export default function SettingsPage() {
-  const { user } = useAuth()
-  
+  const { user, startOtpSetup, completeOtpSetup, disableOtp, refreshUser } = useAuth()
+
   const [activeTab, setActiveTab] = useState('profile')
-  const [saving, setSaving] = useState(false)
-  
-  const [profile, setProfile] = useState({
-    name: user?.fullName || '',
-    email: user?.email || '',
-    company: ''
-  })
-  
+  const [notice, setNotice] = useState('')
+  const [error, setError] = useState('')
+
   const [notifications, setNotifications] = useState({
     emailOnNewVote: true,
     emailOnPollClose: true,
-    marketingEmails: false
+    marketingEmails: false,
   })
 
-  const [password, setPassword] = useState({
-    current: '',
-    new: '',
-    confirm: ''
-  })
+  const [setupLoading, setSetupLoading] = useState(false)
+  const [setupData, setSetupData] = useState(null)
+  const [setupOtpCode, setSetupOtpCode] = useState('')
+  const [setupRecoveryCodes, setSetupRecoveryCodes] = useState([])
 
-  const handleSaveProfile = (e) => {
-    e.preventDefault()
-    setSaving(true)
-    setTimeout(() => {
-      setSaving(false)
-      alert("Profile updated successfully! (Mocked)")
-    }, 800)
+  const [disableSubmitting, setDisableSubmitting] = useState(false)
+  const [disablePassword, setDisablePassword] = useState('')
+  const [disableOtpCode, setDisableOtpCode] = useState('')
+  const [disableRecoveryCode, setDisableRecoveryCode] = useState('')
+  const [disableUseRecovery, setDisableUseRecovery] = useState(false)
+
+  const [votehubTrap, setVotehubTrap] = useState('')
+
+  const canDisableOtp = user?.otpEnabled && user?.role !== 'admin'
+  const securityStatus = useMemo(() => {
+    if (!user) return []
+
+    return [
+      { label: user.emailVerified ? 'Email verified' : 'Email not verified', ok: user.emailVerified },
+      { label: user.otpEnabled ? '2FA enabled' : '2FA disabled', ok: user.otpEnabled },
+      { label: user.role === 'admin' ? 'Secure admin area' : 'Standard account', ok: user.role === 'admin' },
+    ]
+  }, [user])
+
+  const clearMessages = () => {
+    setNotice('')
+    setError('')
   }
 
-  const handleSavePassword = (e) => {
-    e.preventDefault()
-    if (password.new !== password.confirm) {
-      alert("New passwords do not match.")
-      return
+  const resetSensitiveSetupState = () => {
+    setSetupData(null)
+    setSetupOtpCode('')
+    setSetupRecoveryCodes([])
+  }
+
+  const copySensitive = async (value, label) => {
+    const shouldCopy = window.confirm(`${label} is sensitive. Copy to clipboard anyway?`)
+    if (!shouldCopy) return
+
+    try {
+      await navigator.clipboard.writeText(value)
+      setNotice(`${label} copied to clipboard.`)
+    } catch {
+      setError(`Failed to copy ${label.toLowerCase()}.`)
     }
-    setSaving(true)
-    setTimeout(() => {
-      setSaving(false)
-      alert("Password updated successfully! (Mocked)")
-      setPassword({ current: '', new: '', confirm: '' })
-    }, 800)
+  }
+
+  const beginOtpSetup = async () => {
+    clearMessages()
+    setSetupLoading(true)
+
+    try {
+      const data = await startOtpSetup(undefined, votehubTrap)
+      setSetupData(data)
+      setNotice('Scan the QR code and enter one OTP to activate 2FA.')
+    } catch (err) {
+      setError(err.message || 'Failed to start OTP setup')
+    } finally {
+      setSetupLoading(false)
+    }
+  }
+
+  const verifyOtpEnrollment = async (event) => {
+    event.preventDefault()
+    clearMessages()
+    setSetupLoading(true)
+
+    try {
+      const result = await completeOtpSetup(setupOtpCode, undefined, votehubTrap)
+      setSetupRecoveryCodes(result?.recoveryCodes || [])
+      await refreshUser()
+      setNotice('2FA enabled successfully. Save your recovery codes now.')
+      setSetupOtpCode('')
+    } catch (err) {
+      setError(err.message || 'Failed to verify OTP setup')
+    } finally {
+      setSetupLoading(false)
+    }
+  }
+
+  const handleDisableOtp = async (event) => {
+    event.preventDefault()
+    clearMessages()
+    setDisableSubmitting(true)
+
+    try {
+      await disableOtp(
+        disablePassword,
+        disableUseRecovery ? '' : disableOtpCode,
+        disableUseRecovery ? disableRecoveryCode : '',
+        votehubTrap
+      )
+
+      await refreshUser()
+      setDisablePassword('')
+      setDisableOtpCode('')
+      setDisableRecoveryCode('')
+      setDisableUseRecovery(false)
+      resetSensitiveSetupState()
+      setNotice('2FA disabled successfully.')
+    } catch (err) {
+      setError(err.message || 'Failed to disable OTP')
+    } finally {
+      setDisableSubmitting(false)
+    }
   }
 
   return (
     <div className="settings-page">
       <div className="settings-container animate-fade-in-up">
-        
         <div className="settings-sidebar">
-          <h2 className="settings-title">Account Settings</h2>
+          <h2 className="settings-title">Account Security</h2>
           <nav className="settings-nav">
-            <button 
-              className={`settings-tab ${activeTab === 'profile' ? 'active' : ''}`}
-              onClick={() => setActiveTab('profile')}
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-              Profile Information
+            <button className={`settings-tab ${activeTab === 'profile' ? 'active' : ''}`} onClick={() => setActiveTab('profile')}>
+              Profile
             </button>
-            <button 
-              className={`settings-tab ${activeTab === 'security' ? 'active' : ''}`}
-              onClick={() => setActiveTab('security')}
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+            <button className={`settings-tab ${activeTab === 'security' ? 'active' : ''}`} onClick={() => setActiveTab('security')}>
               Security
             </button>
-            <button 
-              className={`settings-tab ${activeTab === 'notifications' ? 'active' : ''}`}
-              onClick={() => setActiveTab('notifications')}
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+            <button className={`settings-tab ${activeTab === 'notifications' ? 'active' : ''}`} onClick={() => setActiveTab('notifications')}>
               Notifications
             </button>
           </nav>
         </div>
 
         <div className="settings-content">
-          
+          {notice && <div className="security-notice">{notice}</div>}
+          {error && <div className="auth-error">{error}</div>}
+
           {activeTab === 'profile' && (
             <div className="settings-section animate-fade-in-up" key="profile">
-              <h3>Profile Information</h3>
-              <p className="settings-desc">Update your personal details and public profile.</p>
-              
-              <div className="settings-avatar-section">
-                <div className="settings-avatar-large">
-                  {user?.fullName?.charAt(0) || 'A'}
-                </div>
-                <div>
-                  <button className="btn btn-secondary">Upload New Avatar</button>
-                  <p className="settings-desc mt-1" style={{ fontSize: '0.8rem' }}>JPG or PNG, max 2MB.</p>
-                </div>
-              </div>
+              <h3>Profile</h3>
+              <p className="settings-desc">
+                Profile edits are backend-dependent and currently read-only in this client.
+              </p>
 
-              <form onSubmit={handleSaveProfile} className="settings-form">
+              <div className="settings-form">
                 <div className="form-group">
                   <label>Full Name</label>
-                  <input 
-                    type="text" 
-                    className="form-input" 
-                    value={profile.name}
-                    onChange={e => setProfile({...profile, name: e.target.value})}
-                    required
-                  />
+                  <input type="text" className="form-input" value={user?.fullName || ''} disabled />
                 </div>
                 <div className="form-group">
                   <label>Email Address</label>
-                  <input 
-                    type="email" 
-                    className="form-input" 
-                    value={profile.email}
-                    onChange={e => setProfile({...profile, email: e.target.value})}
-                    required
-                  />
+                  <input type="email" className="form-input" value={user?.email || ''} disabled />
                 </div>
                 <div className="form-group">
-                  <label>Company / Organization (Optional)</label>
-                  <input 
-                    type="text" 
-                    className="form-input" 
-                    value={profile.company}
-                    onChange={e => setProfile({...profile, company: e.target.value})}
-                  />
+                  <label>Role</label>
+                  <input type="text" className="form-input" value={user?.role || 'voter'} disabled />
                 </div>
-                
-                <button type="submit" className="btn btn-primary" disabled={saving}>
-                  {saving ? 'Saving...' : 'Save Changes'}
-                </button>
-              </form>
+              </div>
             </div>
           )}
 
           {activeTab === 'security' && (
             <div className="settings-section animate-fade-in-up" key="security">
-              <h3>Security & Password</h3>
-              <p className="settings-desc">Ensure your account is using a long, random password to stay secure.</p>
-              
-              <form onSubmit={handleSavePassword} className="settings-form mt-2">
-                <div className="form-group">
-                  <label>Current Password</label>
-                  <input 
-                    type="password" 
-                    className="form-input" 
-                    value={password.current}
-                    onChange={e => setPassword({...password, current: e.target.value})}
-                    required
-                  />
+              <h3>Security Controls</h3>
+              <p className="settings-desc">
+                Manage two-factor authentication and account trust state.
+              </p>
+
+              <div className="trust-indicators" style={{ marginBottom: '1.5rem' }}>
+                {securityStatus.map((item) => (
+                  <span key={item.label} className={`trust-pill ${item.ok ? 'ok' : 'warn'}`}>
+                    {item.label}
+                  </span>
+                ))}
+              </div>
+
+              {!user?.otpEnabled && (
+                <div className="otp-setup-card">
+                  <h4>Enable OTP</h4>
+                  <p>Add authenticator-based OTP to harden account access.</p>
+
+                  {!setupData ? (
+                    <button type="button" className="btn btn-primary" onClick={beginOtpSetup} disabled={setupLoading}>
+                      {setupLoading ? 'Preparing...' : 'Start OTP Setup'}
+                    </button>
+                  ) : (
+                    <>
+                      <img src={setupData.qrCodeDataUrl} alt="OTP QR Code" className="otp-qr" />
+                      <p style={{ marginTop: '0.5rem' }}>Manual setup key:</p>
+                      <code className="otp-manual-key">{setupData.manualEntryKey}</code>
+
+                      <div className="modal-actions" style={{ justifyContent: 'flex-start', marginTop: '0.75rem' }}>
+                        <button
+                          type="button"
+                          className="btn btn-secondary"
+                          onClick={() => copySensitive(setupData.manualEntryKey, 'OTP setup key')}
+                        >
+                          Copy setup key
+                        </button>
+                      </div>
+
+                      {setupRecoveryCodes.length === 0 ? (
+                        <form onSubmit={verifyOtpEnrollment} className="auth-form" style={{ marginTop: '1rem' }}>
+                          <div className="form-group">
+                            <label htmlFor="setup-otp-code">Authenticator OTP</label>
+                            <input
+                              id="setup-otp-code"
+                              type="text"
+                              className="form-input"
+                              value={setupOtpCode}
+                              onChange={(event) => setSetupOtpCode(event.target.value.replace(/[^0-9]/g, '').slice(0, 6))}
+                              inputMode="numeric"
+                              maxLength={6}
+                              required
+                            />
+                          </div>
+                          <button type="submit" className="btn btn-primary" disabled={setupLoading || setupOtpCode.length !== 6}>
+                            {setupLoading ? 'Verifying...' : 'Enable OTP'}
+                          </button>
+                        </form>
+                      ) : (
+                        <div className="recovery-codes-panel" style={{ marginTop: '1rem' }}>
+                          <h4>Recovery Codes</h4>
+                          <p>These are shown once. Save them securely before leaving this page.</p>
+                          <div className="recovery-codes-grid">
+                            {setupRecoveryCodes.map((code) => (
+                              <code key={code}>{code}</code>
+                            ))}
+                          </div>
+                          <div className="modal-actions" style={{ marginTop: '1rem', justifyContent: 'flex-start' }}>
+                            <button
+                              type="button"
+                              className="btn btn-secondary"
+                              onClick={() => copySensitive(setupRecoveryCodes.join('\n'), 'Recovery codes')}
+                            >
+                              Copy recovery codes
+                            </button>
+                            <button
+                              type="button"
+                              className="btn btn-primary"
+                              onClick={() => {
+                                resetSensitiveSetupState()
+                                setNotice('OTP setup complete. Recovery codes hidden again.')
+                              }}
+                            >
+                              I saved them
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )}
                 </div>
-                <div className="form-group">
-                  <label>New Password</label>
-                  <input 
-                    type="password" 
-                    className="form-input" 
-                    value={password.new}
-                    onChange={e => setPassword({...password, new: e.target.value})}
-                    required
-                    minLength="8"
-                  />
+              )}
+
+              {user?.otpEnabled && user?.role === 'admin' && (
+                <div className="security-notice">
+                  Admin accounts must keep OTP enabled. Disable action is blocked by backend policy.
                 </div>
-                <div className="form-group">
-                  <label>Confirm New Password</label>
-                  <input 
-                    type="password" 
-                    className="form-input" 
-                    value={password.confirm}
-                    onChange={e => setPassword({...password, confirm: e.target.value})}
-                    required
-                    minLength="8"
-                  />
+              )}
+
+              {canDisableOtp && (
+                <div className="otp-setup-card" style={{ marginTop: '1.5rem' }}>
+                  <h4>Disable OTP</h4>
+                  <p>Requires your current password and OTP or recovery code.</p>
+
+                  <form onSubmit={handleDisableOtp} className="auth-form">
+                    <div className="form-group">
+                      <label htmlFor="disable-password">Current Password</label>
+                      <input
+                        id="disable-password"
+                        type="password"
+                        className="form-input"
+                        value={disablePassword}
+                        onChange={(event) => setDisablePassword(event.target.value)}
+                        required
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label className="checkbox-label">
+                        <input
+                          type="checkbox"
+                          checked={disableUseRecovery}
+                          onChange={(event) => setDisableUseRecovery(event.target.checked)}
+                        />
+                        <span>Use recovery code</span>
+                      </label>
+                    </div>
+
+                    {!disableUseRecovery ? (
+                      <div className="form-group">
+                        <label htmlFor="disable-otp">OTP Code</label>
+                        <input
+                          id="disable-otp"
+                          type="text"
+                          className="form-input"
+                          value={disableOtpCode}
+                          onChange={(event) => setDisableOtpCode(event.target.value.replace(/[^0-9]/g, '').slice(0, 6))}
+                          inputMode="numeric"
+                          maxLength={6}
+                          required
+                        />
+                      </div>
+                    ) : (
+                      <div className="form-group">
+                        <label htmlFor="disable-recovery">Recovery Code</label>
+                        <input
+                          id="disable-recovery"
+                          type="text"
+                          className="form-input"
+                          value={disableRecoveryCode}
+                          onChange={(event) => setDisableRecoveryCode(event.target.value)}
+                          required
+                        />
+                      </div>
+                    )}
+
+                    <button type="submit" className="btn btn-danger" disabled={disableSubmitting}>
+                      {disableSubmitting ? 'Disabling...' : 'Disable OTP'}
+                    </button>
+                  </form>
                 </div>
-                
-                <button type="submit" className="btn btn-primary" disabled={saving}>
-                  {saving ? 'Updating...' : 'Update Password'}
-                </button>
-              </form>
+              )}
+
+              <div aria-hidden="true" className="honeypot-field" style={{ marginTop: '1rem' }}>
+                <label htmlFor="settings-trap">Leave this field empty</label>
+                <input
+                  id="settings-trap"
+                  type="text"
+                  tabIndex={-1}
+                  autoComplete="off"
+                  value={votehubTrap}
+                  onChange={(event) => setVotehubTrap(event.target.value)}
+                />
+              </div>
             </div>
           )}
 
           {activeTab === 'notifications' && (
             <div className="settings-section animate-fade-in-up" key="notifications">
               <h3>Email Notifications</h3>
-              <p className="settings-desc">Choose what we email you about.</p>
+              <p className="settings-desc">Notification preferences are currently client-side only until backend support is added.</p>
 
               <div className="settings-form mt-2">
                 <div className="setting-row">
@@ -192,38 +357,40 @@ export default function SettingsPage() {
                     <p style={{ fontSize: '0.85rem' }}>Email me when someone votes on my poll.</p>
                   </div>
                   <label className="toggle-switch">
-                    <input 
-                      type="checkbox" 
-                      checked={notifications.emailOnNewVote} 
-                      onChange={e => setNotifications({...notifications, emailOnNewVote: e.target.checked})} 
+                    <input
+                      type="checkbox"
+                      checked={notifications.emailOnNewVote}
+                      onChange={(event) => setNotifications({ ...notifications, emailOnNewVote: event.target.checked })}
                     />
                     <span className="slider"></span>
                   </label>
                 </div>
+
                 <div className="setting-row">
                   <div>
                     <h4 style={{ fontSize: '0.95rem' }}>Poll Closed</h4>
                     <p style={{ fontSize: '0.85rem' }}>Email me a summary when a poll reaches its deadline.</p>
                   </div>
                   <label className="toggle-switch">
-                    <input 
-                      type="checkbox" 
-                      checked={notifications.emailOnPollClose} 
-                      onChange={e => setNotifications({...notifications, emailOnPollClose: e.target.checked})} 
+                    <input
+                      type="checkbox"
+                      checked={notifications.emailOnPollClose}
+                      onChange={(event) => setNotifications({ ...notifications, emailOnPollClose: event.target.checked })}
                     />
                     <span className="slider"></span>
                   </label>
                 </div>
+
                 <div className="setting-row" style={{ borderBottom: 'none' }}>
                   <div>
-                    <h4 style={{ fontSize: '0.95rem' }}>Marketing & Product Updates</h4>
-                    <p style={{ fontSize: '0.85rem' }}>Receive news about new features and voting tips.</p>
+                    <h4 style={{ fontSize: '0.95rem' }}>Marketing Updates</h4>
+                    <p style={{ fontSize: '0.85rem' }}>Receive product news and voting tips.</p>
                   </div>
                   <label className="toggle-switch">
-                    <input 
-                      type="checkbox" 
-                      checked={notifications.marketingEmails} 
-                      onChange={e => setNotifications({...notifications, marketingEmails: e.target.checked})} 
+                    <input
+                      type="checkbox"
+                      checked={notifications.marketingEmails}
+                      onChange={(event) => setNotifications({ ...notifications, marketingEmails: event.target.checked })}
                     />
                     <span className="slider"></span>
                   </label>
@@ -231,9 +398,7 @@ export default function SettingsPage() {
               </div>
             </div>
           )}
-
         </div>
-
       </div>
     </div>
   )
