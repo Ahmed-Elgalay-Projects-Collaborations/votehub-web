@@ -4,6 +4,7 @@ metadata:
   name: votehub
   namespace: votehub
   annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
     nginx.ingress.kubernetes.io/proxy-body-size: "100k"
     nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
@@ -12,10 +13,10 @@ spec:
   ingressClassName: nginx
   tls:
     - hosts:
-        - votehub.example.com
+        - votehub.zapto.org
       secretName: votehub-tls
   rules:
-    - host: votehub.example.com
+    - host: votehub.zapto.org
       http:
         paths:
           - path: /

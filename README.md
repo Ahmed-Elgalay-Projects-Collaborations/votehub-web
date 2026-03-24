@@ -65,3 +65,18 @@ DigitalOcean + MongoDB Atlas end-to-end deployment is documented in backend repo
 Kubernetes (DOKS) frontend manifests are in:
 
 - `votehub-web/k8s/digitalocean`
+
+## Continuous Deployment (GitHub Actions)
+
+This repo includes `.github/workflows/cd-digitalocean.yml`.
+On push to `main`/`master`, it:
+- runs lint + build
+- builds and pushes `ghcr.io/<owner>/votehub-web`
+- applies `k8s/digitalocean`
+- updates deployment `web` image to immutable digest
+
+Required GitHub repository secret:
+- `DOKS_KUBECONFIG_B64` (base64 kubeconfig for the target DOKS cluster)
+
+Optional GitHub repository variable:
+- `VITE_API_URL` (defaults to `/api/v1`)
