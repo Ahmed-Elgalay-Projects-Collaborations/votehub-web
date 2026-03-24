@@ -80,3 +80,7 @@ Required GitHub repository secret:
 
 Optional GitHub repository variable:
 - `VITE_API_URL` (defaults to `/api/v1`)
+
+Optional GHCR override secrets:
+- `GHCR_TOKEN` (PAT with `write:packages` + `read:packages`, SSO-authorized if org uses SAML)
+- `GHCR_USERNAME` (username that owns `GHCR_TOKEN`)
