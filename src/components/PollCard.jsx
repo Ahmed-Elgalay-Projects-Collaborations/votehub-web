@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 
 export default function PollCard({ poll, onDelete, onChangeStatus }) {
   const pollId = poll._id || poll.id
+  const canVote = poll.status === 'open'
 
   const getStatusColor = (status) => {
     switch(status) {
@@ -34,6 +35,14 @@ export default function PollCard({ poll, onDelete, onChangeStatus }) {
           <span>{poll.voteCount} votes</span>
         </div>
         <div className="poll-actions">
+          {canVote && (
+            <Link to={`/vote/${pollId}`} className="btn-icon" title="Cast Vote" style={{ color: 'var(--primary)' }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="4" width="18" height="16" rx="2"></rect>
+                <polyline points="9 12 11 14 15 10"></polyline>
+              </svg>
+            </Link>
+          )}
           {onChangeStatus && poll.status === 'draft' && (
             <button onClick={() => onChangeStatus(pollId, 'published')} className="btn-icon" title="Publish Poll" style={{ color: '#22c55e' }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
