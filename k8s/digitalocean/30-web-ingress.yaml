@@ -13,10 +13,10 @@ spec:
   ingressClassName: nginx
   tls:
     - hosts:
-        - votehub.zapto.org
+        - votehub.me
       secretName: votehub-tls
   rules:
-    - host: votehub.zapto.org
+    - host: votehub.me
       http:
         paths:
           - path: /
