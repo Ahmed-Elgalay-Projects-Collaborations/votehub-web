@@ -4,11 +4,16 @@ metadata:
   name: votehub-legacy-redirect
   namespace: votehub
   annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
     nginx.ingress.kubernetes.io/ssl-redirect: "false"
     nginx.ingress.kubernetes.io/permanent-redirect: "https://votehub.me"
     nginx.ingress.kubernetes.io/permanent-redirect-code: "301"
 spec:
   ingressClassName: nginx
+  tls:
+    - hosts:
+        - votehub.zapto.org
+      secretName: votehub-zapto-tls
   rules:
     - host: votehub.zapto.org
       http:
