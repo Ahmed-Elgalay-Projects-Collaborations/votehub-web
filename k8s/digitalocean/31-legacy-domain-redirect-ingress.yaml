@@ -5,7 +5,8 @@ metadata:
   namespace: votehub
   annotations:
     nginx.ingress.kubernetes.io/ssl-redirect: "false"
-    nginx.ingress.kubernetes.io/permanent-redirect: https://votehub.me$request_uri
+    nginx.ingress.kubernetes.io/permanent-redirect: "https://votehub.me"
+    nginx.ingress.kubernetes.io/permanent-redirect-code: "301"
 spec:
   ingressClassName: nginx
   rules:
