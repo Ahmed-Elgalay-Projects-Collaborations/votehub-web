@@ -70,7 +70,7 @@ jobs:
         run: |
           VITE_API_URL="${{ vars.VITE_API_URL }}"
           if [ -z "$VITE_API_URL" ]; then
-            VITE_API_URL="/api/v1"
+            VITE_API_URL="https://api.votehub.me/api/v1"
           fi
           echo "vite_api_url=$VITE_API_URL" >> "$GITHUB_OUTPUT"
 
