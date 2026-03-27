@@ -11,6 +11,20 @@
     "test": "vitest run",
     "test:watch": "vitest"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Ahmed-Elgalay-Projects-Collaborations/votehub-web.git"
+  },
+  "author": "Ahmed Elgalay",
+  "contributors": [
+    "Abdelrahman Elgewily",
+    "Amr Ahmed"
+  ],
+  "license": "GPL-3.0-or-later",
+  "bugs": {
+    "url": "https://github.com/Ahmed-Elgalay-Projects-Collaborations/votehub-web/issues"
+  },
+  "homepage": "https://github.com/Ahmed-Elgalay-Projects-Collaborations/votehub-web#readme",
   "dependencies": {
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
