@@ -7,5 +7,6 @@ resources:
   - 10-web-deployment.yaml
   - 20-web-service.yaml
   - 30-web-ingress.yaml
+  - 31-legacy-domain-redirect-ingress.yaml
   - 40-web-hpa.yaml
   - 41-web-pdb.yaml
