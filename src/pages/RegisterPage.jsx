@@ -113,15 +113,38 @@ export default function RegisterPage() {
 
           {error && <div className="auth-error">{error}</div>}
 
-          <form className="auth-form" onSubmit={handleSubmit}>
+          <form className="auth-form" onSubmit={handleSubmit} autoComplete="on">
             <div className="form-group">
               <label htmlFor="name">Full Name</label>
-              <input id="name" type="text" className="form-input" placeholder="Jane Doe" value={name} onChange={(event) => setName(event.target.value)} required />
+              <input
+                id="name"
+                name="name"
+                type="text"
+                className="form-input"
+                placeholder="Jane Doe"
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                autoComplete="name"
+                required
+              />
             </div>
 
             <div className="form-group">
               <label htmlFor="email">Email address</label>
-              <input id="email" type="email" className="form-input" placeholder="you@company.com" value={email} onChange={(event) => setEmail(event.target.value)} required />
+              <input
+                id="email"
+                name="email"
+                type="email"
+                className="form-input"
+                placeholder="you@company.com"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                autoComplete="email"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
+                required
+              />
             </div>
 
             <div className="form-group">
@@ -129,11 +152,13 @@ export default function RegisterPage() {
               <div style={{ position: 'relative' }}>
                 <input
                   id="password"
+                  name="new-password"
                   type={showPassword ? 'text' : 'password'}
                   className="form-input"
                   placeholder="Use uppercase, lowercase, and numbers"
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
+                  autoComplete="new-password"
                   style={{ paddingRight: '2.5rem' }}
                   required
                 />
@@ -162,11 +187,13 @@ export default function RegisterPage() {
               <div style={{ position: 'relative' }}>
                 <input
                   id="confirmPassword"
+                  name="confirm-password"
                   type={showConfirmPassword ? 'text' : 'password'}
                   className="form-input"
                   placeholder="Type password again"
                   value={confirmPassword}
                   onChange={(event) => setConfirmPassword(event.target.value)}
+                  autoComplete="new-password"
                   style={{ paddingRight: '2.5rem' }}
                   required
                 />

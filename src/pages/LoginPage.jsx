@@ -172,16 +172,21 @@ export default function LoginPage() {
           {error && <div className="auth-error">{error}</div>}
 
           {!otpStep ? (
-            <form className="auth-form" onSubmit={handleSubmit}>
+            <form className="auth-form" onSubmit={handleSubmit} autoComplete="on">
               <div className="form-group">
                 <label htmlFor="email">Email address</label>
                 <input
                   id="email"
+                  name="username"
                   type="email"
                   className="form-input"
                   placeholder="name@company.com"
                   value={email}
                   onChange={(event) => setEmail(event.target.value)}
+                  autoComplete="username"
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
                   required
                 />
               </div>
@@ -191,11 +196,13 @@ export default function LoginPage() {
                 <div style={{ position: 'relative' }}>
                   <input
                     id="password"
+                    name="current-password"
                     type={showPassword ? 'text' : 'password'}
                     className="form-input"
                     placeholder="Enter your password"
                     value={password}
                     onChange={(event) => setPassword(event.target.value)}
+                    autoComplete="current-password"
                     style={{ paddingRight: '2.5rem' }}
                     required
                   />
@@ -261,7 +268,7 @@ export default function LoginPage() {
               </div>
             </div>
           ) : (
-            <form className="auth-form" onSubmit={handleOtpSubmit}>
+            <form className="auth-form" onSubmit={handleOtpSubmit} autoComplete="on">
               <div className="security-notice" style={{ marginBottom: '1rem' }}>
                 Risk level: <strong>{riskLevel}</strong>
               </div>
@@ -305,11 +312,13 @@ export default function LoginPage() {
                   <label htmlFor="otpCode">Authenticator code</label>
                   <input
                     id="otpCode"
+                    name="one-time-code"
                     type="text"
                     className="form-input"
                     placeholder="123456"
                     value={otpCode}
                     onChange={(event) => setOtpCode(event.target.value.replace(/[^0-9]/g, '').slice(0, 6))}
+                    autoComplete="one-time-code"
                     inputMode="numeric"
                     maxLength={6}
                     required
@@ -320,11 +329,13 @@ export default function LoginPage() {
                   <label htmlFor="recoveryCode">Recovery code</label>
                   <input
                     id="recoveryCode"
+                    name="recovery-code"
                     type="text"
                     className="form-input"
                     placeholder="Enter recovery code"
                     value={recoveryCode}
                     onChange={(event) => setRecoveryCode(event.target.value)}
+                    autoComplete="off"
                     required
                   />
                 </div>

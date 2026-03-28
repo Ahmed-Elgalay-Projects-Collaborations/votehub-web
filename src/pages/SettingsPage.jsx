@@ -208,15 +208,17 @@ export default function SettingsPage() {
                       </div>
 
                       {setupRecoveryCodes.length === 0 ? (
-                        <form onSubmit={verifyOtpEnrollment} className="auth-form" style={{ marginTop: '1rem' }}>
+                        <form onSubmit={verifyOtpEnrollment} className="auth-form" style={{ marginTop: '1rem' }} autoComplete="on">
                           <div className="form-group">
                             <label htmlFor="setup-otp-code">Authenticator OTP</label>
                             <input
                               id="setup-otp-code"
+                              name="one-time-code"
                               type="text"
                               className="form-input"
                               value={setupOtpCode}
                               onChange={(event) => setSetupOtpCode(event.target.value.replace(/[^0-9]/g, '').slice(0, 6))}
+                              autoComplete="one-time-code"
                               inputMode="numeric"
                               maxLength={6}
                               required
@@ -272,15 +274,17 @@ export default function SettingsPage() {
                   <h4>Disable OTP</h4>
                   <p>Requires your current password and OTP or recovery code.</p>
 
-                  <form onSubmit={handleDisableOtp} className="auth-form">
+                  <form onSubmit={handleDisableOtp} className="auth-form" autoComplete="on">
                     <div className="form-group">
                       <label htmlFor="disable-password">Current Password</label>
                       <input
                         id="disable-password"
+                        name="current-password"
                         type="password"
                         className="form-input"
                         value={disablePassword}
                         onChange={(event) => setDisablePassword(event.target.value)}
+                        autoComplete="current-password"
                         required
                       />
                     </div>
@@ -301,10 +305,12 @@ export default function SettingsPage() {
                         <label htmlFor="disable-otp">OTP Code</label>
                         <input
                           id="disable-otp"
+                          name="one-time-code"
                           type="text"
                           className="form-input"
                           value={disableOtpCode}
                           onChange={(event) => setDisableOtpCode(event.target.value.replace(/[^0-9]/g, '').slice(0, 6))}
+                          autoComplete="one-time-code"
                           inputMode="numeric"
                           maxLength={6}
                           required
@@ -315,10 +321,12 @@ export default function SettingsPage() {
                         <label htmlFor="disable-recovery">Recovery Code</label>
                         <input
                           id="disable-recovery"
+                          name="recovery-code"
                           type="text"
                           className="form-input"
                           value={disableRecoveryCode}
                           onChange={(event) => setDisableRecoveryCode(event.target.value)}
+                          autoComplete="off"
                           required
                         />
                       </div>
