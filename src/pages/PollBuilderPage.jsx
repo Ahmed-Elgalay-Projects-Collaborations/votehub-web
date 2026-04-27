@@ -36,6 +36,48 @@ export default function PollBuilderPage() {
     resultsVisibility: 'after_close',
   })
 
+  const parseValidationError = (error) => {
+    if (!error || error.code !== 'VALIDATION_ERROR' || !Array.isArray(error.data) || error.data.length === 0) {
+      return null
+    }
+
+    const detail = error.data[0]
+    const rawField = detail?.field || ''
+    const normalizedField = rawField.startsWith('options') ? 'options' : rawField
+    const fieldLabelMap = {
+      title: 'Title',
+      description: 'Description',
+      options: 'Options',
+      startsAt: 'Start date',
+      endsAt: 'End date',
+      maxSelections: 'Max selections',
+      resultsVisibility: 'Results visibility',
+      status: 'Status',
+      type: 'Type',
+    }
+
+    const stepByField = {
+      title: 2,
+      description: 2,
+      options: 2,
+      type: 1,
+      startsAt: 3,
+      endsAt: 3,
+      maxSelections: 3,
+      resultsVisibility: 3,
+      status: 3,
+    }
+
+    const label = fieldLabelMap[normalizedField] || rawField || 'Field'
+    const message = detail?.message || error.message
+    const targetStep = stepByField[normalizedField]
+
+    return {
+      message: `${label}: ${message}`,
+      targetStep,
+    }
+  }
+
   useEffect(() => {
     if (!isEditing) return
 
@@ -116,7 +158,15 @@ export default function PollBuilderPage() {
 
       navigate('/dashboard')
     } catch (err) {
-      setPageError(err.message || 'Error saving poll')
+      const validation = parseValidationError(err)
+      if (validation) {
+        setPageError(validation.message)
+        if (validation.targetStep) {
+          setStep(validation.targetStep)
+        }
+      } else {
+        setPageError(err.message || 'Error saving poll')
+      }
     } finally {
       setSubmitting(false)
     }

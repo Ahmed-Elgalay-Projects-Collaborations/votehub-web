@@ -9,6 +9,20 @@ import AdminStepUpModal from '../components/security/AdminStepUpModal'
 export default function DashboardPage() {
   const { user } = useAuth()
   const location = useLocation()
+  const canManagePolls = user?.role === 'admin' || user?.canCreatePolls
+
+  const canManageSpecificPoll = (poll) => {
+    if (!canManagePolls) return false
+    if (user?.role === 'admin') return true
+
+    const createdBy = poll?.createdBy
+    const createdById =
+      typeof createdBy === 'object' && createdBy !== null
+        ? (createdBy._id || createdBy.id)
+        : createdBy
+
+    return Boolean(createdById && user?.id && String(createdById) === String(user.id))
+  }
 
   const [polls, setPolls] = useState([])
   const [loading, setLoading] = useState(true)
@@ -135,7 +149,7 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {(user?.role === 'admin' || user?.canCreatePolls) && (
+          {canManagePolls && (
             <Link to="/polls/create" className="btn btn-primary">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -152,8 +166,12 @@ export default function DashboardPage() {
         <div className="dashboard-filters animate-fade-in-up delay-100">
           <button className={`filter-tab ${filter === 'all' ? 'active' : ''}`} onClick={() => setFilter('all')}>All Polls</button>
           <button className={`filter-tab ${filter === 'open' ? 'active' : ''}`} onClick={() => setFilter('open')}>Active</button>
-          <button className={`filter-tab ${filter === 'closed' ? 'active' : ''}`} onClick={() => setFilter('closed')}>Closed</button>
-          <button className={`filter-tab ${filter === 'draft' ? 'active' : ''}`} onClick={() => setFilter('draft')}>Drafts</button>
+          {canManagePolls && (
+            <>
+              <button className={`filter-tab ${filter === 'closed' ? 'active' : ''}`} onClick={() => setFilter('closed')}>Closed</button>
+              <button className={`filter-tab ${filter === 'draft' ? 'active' : ''}`} onClick={() => setFilter('draft')}>Drafts</button>
+            </>
+          )}
         </div>
 
         {loading ? (
@@ -164,12 +182,13 @@ export default function DashboardPage() {
           <div className="poll-grid">
             {filteredPolls.map((poll, index) => {
               const pollId = poll._id || poll.id
+              const canManageThisPoll = canManageSpecificPoll(poll)
               return (
                 <div key={pollId} style={{ animationDelay: `${(index % 5) * 100}ms` }}>
                   <PollCard
                     poll={poll}
-                    onDelete={() => startAction({ type: 'delete', pollId, poll })}
-                    onChangeStatus={(id, nextStatus) => startAction({ type: 'status', pollId: id, poll, nextStatus })}
+                    onDelete={canManageThisPoll ? (() => startAction({ type: 'delete', pollId, poll })) : undefined}
+                    onChangeStatus={canManageThisPoll ? ((id, nextStatus) => startAction({ type: 'status', pollId: id, poll, nextStatus })) : undefined}
                   />
                 </div>
               )
@@ -180,7 +199,7 @@ export default function DashboardPage() {
             <div className="empty-icon">No Data</div>
             <h3>No polls found</h3>
             <p>You have not created any {filter !== 'all' ? filter : ''} polls yet.</p>
-            {filter === 'all' && (user?.role === 'admin' || user?.canCreatePolls) && (
+            {filter === 'all' && canManagePolls && (
               <Link to="/polls/create" className="btn btn-secondary" style={{ marginTop: '1.5rem' }}>
                 Create your first poll
               </Link>
